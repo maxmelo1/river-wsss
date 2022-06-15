@@ -3,6 +3,8 @@ import torchvision
 from custom_dataset import CustomDataset
 from torch.utils.data import DataLoader
 
+from torchmetrics import JaccardIndex
+
 import numpy as np
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
@@ -57,33 +59,35 @@ def get_loaders(
 def check_accuracy(loader, model, device="cuda"):
     num_correct = 0
     num_pixels = 0
-    dice_score = 0
-    iou = 0
+    n_samples = 0
     model.eval()
+
+    jaccard = JaccardIndex(num_classes=2).to(device)
+    iou_torch = 0.0
 
     with torch.no_grad():
         for x, y in loader:
-            print(np.shape(x))
+            # print(len(x))
+            n_samples = len(x)
             x = x.to(device)
             y = y.to(device).unsqueeze(1)
             preds = torch.sigmoid(model(x))
+
             preds = (preds > 0.5).float()
             num_correct += (preds == y).sum()
             num_pixels += torch.numel(preds)
-            dice_score += (2 * (preds * y).sum()) / (
-                (preds + y).sum() + 1e-8
-            )
-            intersection = (preds.int() & y.int()).sum()
-            union = (preds.int() | y.int()).sum()
             
-            iou += (intersection + 1e-8) / (union + 1e-8)
+            y = y.int()
+            iou_torch += jaccard(preds, y).to(device)
+
+            
 
 
     print(
         f"Got {num_correct}/{num_pixels} with acc {num_correct/num_pixels*100:.2f}"
     )
-    print(f"Dice score: {dice_score/num_pixels*100:.2f}")
-    print(f"IOU : {iou/num_pixels*100:.2f}")
+    
+    print(f"IOU : {iou_torch/n_samples*100:.2f} (Batch = {n_samples})")
     model.train()
 
 def save_predictions_as_imgs(

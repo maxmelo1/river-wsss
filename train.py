@@ -20,10 +20,12 @@ from utils import (
 import matplotlib.pyplot as plt
 import numpy as np
 
-def train_fn(loader, model, optimizer, loss_fn, scaler):
-    loop = tqdm(loader)
+def train_fn(loader, model, optimizer, loss_fn, scaler, epoch):
+    loop = tqdm(loader, unit="batch")
 
     for batch_idx, (data, targets) in enumerate(loop):
+        loop.set_description(f"Epoch {epoch}")
+
         data = data.to(device=DEVICE)
         targets = targets.float().unsqueeze(1).to(device=DEVICE)
 
@@ -85,10 +87,12 @@ def train():
         PIN_MEMORY,
     )
 
+    
+
     if LOAD_MODEL:
         load_checkpoint(torch.load("my_checkpoint.pth.tar"), model)
 
-    # X, y = next(iter(train_loader))
+    el = next(iter(val_loader))
 
     # print(np.shape(X))
     # print(np.shape(y))
@@ -102,7 +106,7 @@ def train():
     scaler = torch.cuda.amp.GradScaler()
 
     for epoch in range(NUM_EPOCHS):
-        train_fn(train_loader, model, optimizer, loss_fn, scaler)
+        train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch)
 
         # save model
         checkpoint = {
@@ -115,9 +119,9 @@ def train():
         check_accuracy(val_loader, model, device=DEVICE)
 
         # print some examples to a folder
-        save_predictions_as_imgs(
-            val_loader, model, folder="saved_images/", device=DEVICE
-        )
+        # save_predictions_as_imgs(
+        #     val_loader, model, folder="saved_images/", device=DEVICE
+        # )
 
 if __name__ == '__main__':
 
