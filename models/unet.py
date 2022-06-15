@@ -73,7 +73,8 @@ def test():
     preds = model(x)
     #assert preds.shape == x.shape
 
-    torchsummary.summary(model, x)
+    #torchsummary.summary(model, x)
+    print(preds.shape)
 
 if __name__ == "__main__":
     test()

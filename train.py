@@ -9,6 +9,7 @@ import argparse
 from configs.params import *
 
 from models.unet import UNET
+from models.attention_unet import AttUNET
 from utils import (
     load_checkpoint,
     save_checkpoint,
@@ -42,6 +43,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, epoch):
 
         # update tqdm loop
         loop.set_postfix(loss=loss.item())
+    return loss.item()
 
 def train():
     train_transform = A.Compose(
@@ -71,7 +73,11 @@ def train():
         ],
     )
 
-    model = UNET(in_channels=3, out_channels=1).to(DEVICE)
+    if MODEL == 'Unet':
+        model = UNET(in_channels=3, out_channels=1).to(DEVICE)
+    elif MODEL == 'AttUnet':
+        model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
+    
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
@@ -92,7 +98,7 @@ def train():
     if LOAD_MODEL:
         load_checkpoint(torch.load("my_checkpoint.pth.tar"), model)
 
-    el = next(iter(val_loader))
+    # el = next(iter(val_loader))
 
     # print(np.shape(X))
     # print(np.shape(y))
@@ -105,15 +111,19 @@ def train():
     check_accuracy(val_loader, model, device=DEVICE)
     scaler = torch.cuda.amp.GradScaler()
 
+    best_loss = 99999.99
+
     for epoch in range(NUM_EPOCHS):
-        train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch)
+        loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch)
 
         # save model
         checkpoint = {
             "state_dict": model.state_dict(),
             "optimizer":optimizer.state_dict(),
         }
-        save_checkpoint(checkpoint)
+        if loss< best_loss:
+            save_checkpoint(checkpoint, filename="results/"+MODEL+"/last_checkpoint.pth.tar")
+            loss = best_loss
 
         # check accuracy
         check_accuracy(val_loader, model, device=DEVICE)
@@ -131,6 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', help='max epochs', type=int, required=False)
     parser.add_argument('--height', help='input image height', type=int, required=False)
     parser.add_argument('--width', help='input image width', type=int, required=False)
+    parser.add_argument('--model', help='model name', type=str, required=False)
     
     args = parser.parse_args()
     
@@ -138,5 +149,9 @@ if __name__ == '__main__':
     NUM_EPOCHS      = args.epochs
     IMAGE_HEIGHT    = args.height
     IMAGE_WIDTH     = args.width
+
+    #default: Unet
+    if args.model in VALID_MODELS:
+        MODEL           = args.model
 
     train()
