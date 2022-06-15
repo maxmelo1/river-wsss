@@ -125,10 +125,14 @@ if __name__ == '__main__':
 
     parser.add_argument('--bs', help='batch size', type=int, required=False)
     parser.add_argument('--epochs', help='max epochs', type=int, required=False)
+    parser.add_argument('--height', help='input image height', type=int, required=False)
+    parser.add_argument('--width', help='input image width', type=int, required=False)
     
     args = parser.parse_args()
     
-    BATCH_SIZE = args.bs
-    NUM_EPOCHS = args.epochs
+    BATCH_SIZE      = args.bs
+    NUM_EPOCHS      = args.epochs
+    IMAGE_HEIGHT    = args.height
+    IMAGE_WIDTH     = args.width
 
     train()
