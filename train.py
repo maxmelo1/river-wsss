@@ -10,7 +10,7 @@ from configs.params import *
 
 from models.unet import UNET
 from models.attention_unet import AttUNET
-from models.deeplabv3 import DeepLabv3
+from models.smp_models import DeepLabv3, UnetPlus
 from utils import (
     load_checkpoint,
     save_checkpoint,
@@ -86,8 +86,10 @@ def train():
         model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
     elif MODEL == 'Deeplab':
         model = DeepLabv3(outputchannels=1).to(DEVICE)
+    elif MODEL == 'UnetPlus':
+        model = UnetPlus(output_channels=1).to(DEVICE)
     
-    loss_fn = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.4)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.95)
@@ -132,7 +134,7 @@ def train():
     best_loss = 99999.99
 
     for epoch in range(NUM_EPOCHS):
-        loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch, scheduler)
+        loss = train_fn(train_loader, model, optimizer, criterion, scaler, epoch, scheduler)
 
         # save model
         checkpoint = {
@@ -172,5 +174,7 @@ if __name__ == '__main__':
     #default: Unet
     if args.model in VALID_MODELS:
         MODEL           = args.model
+    
+    print(f'SELECTED MODEL: {MODEL}')
 
     train()

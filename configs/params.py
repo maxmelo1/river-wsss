@@ -14,5 +14,5 @@ TRAIN_IMG_DIR = "dataset/img_dir/train"
 TRAIN_MASK_DIR = "dataset/ann_dir/train"
 VAL_IMG_DIR = "dataset/img_dir/val"
 VAL_MASK_DIR = "dataset/ann_dir/val"
-VALID_MODELS = ['Unet', 'AttUnet', 'Deeplab', 'Segnet', 'Puzzle-CAM']
+VALID_MODELS = ['Unet', 'AttUnet', 'Deeplab', 'UnetPlus', 'Puzzle-CAM']
 MODEL = 'Unet'
