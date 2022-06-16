@@ -25,7 +25,7 @@ import wandb
 
 wandb.init(project="bacia_sto_antonio", entity="maxmelo")
 
-def train_fn(loader, model, optimizer, loss_fn, scaler, epoch):
+def train_fn(loader, model, optimizer, loss_fn, scaler, epoch, scheduler):
     loop = tqdm(loader, unit="batch")
 
     for batch_idx, (data, targets) in enumerate(loop):
@@ -45,7 +45,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, epoch):
         scaler.step(optimizer)
         scaler.update()
 
-        wandb.log({"loss": loss})
+        wandb.log({"loss": loss, "lr": scheduler.get_last_lr()[0]})
 
         # update tqdm loop
         loop.set_postfix(loss=loss.item())
@@ -86,7 +86,8 @@ def train():
     
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.4)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.95)
 
     train_loader, val_loader = get_loaders(
         TRAIN_IMG_DIR,
@@ -127,10 +128,7 @@ def train():
     best_loss = 99999.99
 
     for epoch in range(NUM_EPOCHS):
-        loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch)
-        scheduler.step()
-
-        wandb.log({"lr": scheduler.get_lr()})
+        loss = train_fn(train_loader, model, optimizer, loss_fn, scaler, epoch, scheduler)
 
         # save model
         checkpoint = {
@@ -148,6 +146,7 @@ def train():
         # save_predictions_as_imgs(
         #     val_loader, model, folder="saved_images/", device=DEVICE
         # )
+        scheduler.step()
 
 if __name__ == '__main__':
 
