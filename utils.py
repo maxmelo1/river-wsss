@@ -58,7 +58,7 @@ def get_loaders(
 
     return train_loader, val_loader
 
-def check_accuracy(loader, model, device="cuda"):
+def check_accuracy(loader, model, device="cuda" ):
     num_correct = 0
     num_pixels = 0
     n_samples = 0
@@ -73,6 +73,7 @@ def check_accuracy(loader, model, device="cuda"):
             n_samples = len(x)
             x = x.to(device)
             y = y.to(device).unsqueeze(1)
+            
             preds = torch.sigmoid(model(x))
 
             preds = (preds > 0.5).float()

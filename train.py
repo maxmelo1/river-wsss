@@ -10,6 +10,7 @@ from configs.params import *
 
 from models.unet import UNET
 from models.attention_unet import AttUNET
+from models.deeplabv3 import DeepLabv3
 from utils import (
     load_checkpoint,
     save_checkpoint,
@@ -83,6 +84,8 @@ def train():
         model = UNET(in_channels=3, out_channels=1).to(DEVICE)
     elif MODEL == 'AttUnet':
         model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
+    elif MODEL == 'Deeplab':
+        model = DeepLabv3(outputchannels=1).to(DEVICE)
     
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -117,6 +120,7 @@ def train():
     # plt.show()
 
     check_accuracy(val_loader, model, device=DEVICE)
+    
     scaler = torch.cuda.amp.GradScaler()
 
     wandb.config = {
