@@ -37,7 +37,7 @@ def save_files(img_name, mask_name):
 
     new_mask_name = mask_name.split('/')[3].split('.')[0]
     mask = Image.fromarray(new_mask).convert('RGB')
-    mask.save('dataset2/SegmentationClass/'+new_mask_name+".jpg")
+    mask.save('dataset2/SegmentationClass/'+new_mask_name+".png")
 
 
 mask_train_ids = np.array([os.path.join(MASK_TRAIN_PATH, x) for x in sorted_fns(MASK_TRAIN_PATH)])
