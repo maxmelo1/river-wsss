@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import json
+import cv2
+from pascal_voc_writer import Writer
 
 pix_cls = (128, 0, 0) #aeroplane in VOC
 
@@ -24,10 +26,34 @@ if not os.path.isdir('dataset2/JPEGImages'):
 def sorted_fns(dir):
     return sorted(os.listdir(dir), key=lambda x: x.split('.')[0])
 
+
+def show_image(image):
+    img2 = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    plt.imshow(img2)
+    plt.show()
+   
+
+def findBoundingBoxes(image):
+    img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    ret, im = cv2.threshold(img_gray, 20, 255, cv2.THRESH_BINARY)
+    contours, hierarchy  = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    res_img = image.copy()
+    img = cv2.drawContours(res_img, contours, -1, (0,255,0), 2)
+    
+    box_list = []
+
+    for contour in contours:
+        (x,y, w,h) = cv2.boundingRect(contour)
+        cv2.rectangle(res_img, (x,y), (w+x, h+y), (255,0,0), 2)
+        box_list.append((x,y, w,h))
+
+    #uncoment if you want to preview the contours and bounding boxes over the mask.
+    #show_image(res_img)
+    return box_list
+
 def save_files(img_name, mask_name):
     image = Image.open(img_name).convert("RGB")
-    mask = np.array(Image.open(mask_name).convert("L"), dtype=np.float32)
-
+    mask = np.array(Image.open(mask_name).convert("L"), dtype=np.float32) 
     
     new_mask = np.zeros( (mask.shape[0], mask.shape[1], 3), dtype='uint8' )
 
@@ -39,6 +65,18 @@ def save_files(img_name, mask_name):
     new_mask_name = mask_name.split('/')[3].split('.')[0]
     mask = Image.fromarray(new_mask).convert('RGB')
     mask.save('dataset2/SegmentationClass/'+new_mask_name+".png")
+
+    writer = Writer(path="dataset2/SegmentationClass/"+new_mask_name+".png", width=np.shape(new_mask)[0], height=np.shape(new_mask)[1], segmented=1)
+
+    cv_image = cv2.cvtColor(new_mask, cv2.COLOR_RGB2BGR)
+    blist = findBoundingBoxes(cv_image)
+    #print(blist, new_mask_name+".png")
+
+    for (x, y, w, h) in blist:
+        writer.addObject('river', x, y, x+w, y+h)
+    writer.save("dataset2/Annotations/"+new_mask_name+".xml")
+
+    
 
 def count_river(mask_ids):
     c=0
@@ -76,6 +114,7 @@ def save_dict(train_size, val_size):
         json.dump(voc_dict, f)
 
 
+
 mask_train_ids = np.array([os.path.join(MASK_TRAIN_PATH, x) for x in sorted_fns(MASK_TRAIN_PATH)])
 img_train_ids = np.array([os.path.join(IMAGE_TRAIN_PATH, x) for x in sorted_fns(IMAGE_TRAIN_PATH)])
 
@@ -100,15 +139,15 @@ ftrain = open('data/train.txt', 'a')
 ftrain_aug = open('data/train_aug.txt', 'a') 
 #TODO implementar o boundaries para train_aug
 
-# for img_train, mask_train in zip(img_train_ids, mask_train_ids):
-#     ftrain.write(img_train.split('/')[3].split('.')[0]+'\n')
+for img_train, mask_train in zip(img_train_ids, mask_train_ids):
+    ftrain.write(img_train.split('/')[3].split('.')[0]+'\n')
 
-#     save_files(img_train, mask_train)
+    save_files(img_train, mask_train)
 
-# for img_val , mask_val in zip(img_val_ids, mask_val_ids):
-#     fval.write(img_val.split('/')[3].split('.')[0]+'\n')
+for img_val , mask_val in zip(img_val_ids, mask_val_ids):
+    fval.write(img_val.split('/')[3].split('.')[0]+'\n')
 
-#     save_files(img_train, mask_val)
+    save_files(img_train, mask_val)
 
 fval.close()
 ftrain.close()
