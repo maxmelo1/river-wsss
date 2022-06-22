@@ -6,7 +6,10 @@ import json
 import cv2
 from pascal_voc_writer import Writer
 
-pix_cls = (128, 0, 0) #aeroplane in VOC
+
+palette = [0, 0, 0, 128, 0, 0, 0, 128, 0, 128, 128, 0, 0, 0, 128, 128, 0, 128, 0, 128, 128,
+128, 128, 128, 64, 0, 0, 192, 0, 0, 64, 128, 0, 192, 128, 0, 64, 0, 128, 192, 0, 128,
+64, 128, 128, 192, 128, 128, 0, 64, 0, 128, 64, 0, 0, 192, 0, 128, 192, 0, 0, 64, 128]
 
 
 IMAGE_TRAIN_PATH = "dataset/img_dir/train/"
@@ -52,23 +55,36 @@ def findBoundingBoxes(image):
     return box_list
 
 def save_files(img_name, mask_name):
-    image = Image.open(img_name).convert("RGB")
-    mask = np.array(Image.open(mask_name).convert("L"), dtype=np.float32) 
-    
-    new_mask = np.zeros( (mask.shape[0], mask.shape[1], 3), dtype='uint8' )
+    cmap = np.array([[[0,0,0]],[[128,0,0]]], dtype=np.uint8) #aeroplane in VOC
 
-    new_mask[mask == 1.0] = pix_cls
+    image = Image.open(img_name).convert("RGB")
+    mask = np.array(Image.open(mask_name).convert('L'))    
+
+    #mask = np.array(mask.convert("L"))[:, :, np.newaxis]
+    
+    # new_mask = np.zeros( (mask.shape[0], mask.shape[1], 3), dtype='uint8' )
+    # new_mask[mask == 1.0] = pix_cls
+
+    # new_mask = np.dot(mask == 0, cmap[0])
+    # new_mask += np.dot(mask == 1, cmap[1])
+    new_mask = np.array(mask, copy=True)
+    new_mask[new_mask>0] = 1
 
     new_img_name = img_name.split('/')[3].split('.')[0]
     image.save("dataset2/JPEGImages/"+new_img_name+".jpg")
 
     new_mask_name = mask_name.split('/')[3].split('.')[0]
-    mask = Image.fromarray(new_mask).convert('RGB')
-    mask.save('dataset2/SegmentationClass/'+new_mask_name+".png")
+    #mask = Image.fromarray(new_mask).convert('RGB')
+    #mask = Image.fromarray(new_mask.astype(np.uint8))
+
+    new_mask = Image.fromarray(new_mask.astype(np.uint8)).convert('P')
+    new_mask.putpalette(palette)
+
+    new_mask.save('dataset2/SegmentationClass/'+new_mask_name+".png")
 
     writer = Writer(path="dataset2/SegmentationClass/"+new_mask_name+".png", width=np.shape(new_mask)[0], height=np.shape(new_mask)[1], segmented=1)
 
-    cv_image = cv2.cvtColor(new_mask, cv2.COLOR_RGB2BGR)
+    cv_image = cv2.cvtColor(mask, cv2.COLOR_RGB2BGR)
     blist = findBoundingBoxes(cv_image)
     #print(blist, new_mask_name+".png")
 
