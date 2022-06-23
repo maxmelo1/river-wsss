@@ -84,7 +84,10 @@ def save_files(img_name, mask_name):
 
     writer = Writer(path="dataset2/SegmentationClass/"+new_mask_name+".png", width=np.shape(new_mask)[0], height=np.shape(new_mask)[1], segmented=1)
 
-    cv_image = cv2.cvtColor(mask, cv2.COLOR_RGB2BGR)
+    cv_mask = np.zeros( (mask.shape[0], mask.shape[1], 3), dtype='uint8' )
+    cv_mask[mask>0] = [128,0,0]
+    cv_image = cv2.cvtColor(cv_mask, cv2.COLOR_RGB2BGR)
+    # print('mask name: ',new_mask_name)
     blist = findBoundingBoxes(cv_image)
     #print(blist, new_mask_name+".png")
 
