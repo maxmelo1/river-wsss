@@ -163,7 +163,7 @@ for img_train, mask_train in zip(img_train_ids, mask_train_ids):
 for img_val , mask_val in zip(img_val_ids, mask_val_ids):
     fval.write(img_val.split('/')[3].split('.')[0]+'\n')
 
-    save_files(img_train, mask_val)
+    save_files(img_val, mask_val)
 
 fval.close()
 ftrain.close()
