@@ -5,8 +5,6 @@ from torch.utils.data import DataLoader
 
 from torchmetrics import JaccardIndex
 
-import wandb
-
 import numpy as np
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
@@ -92,6 +90,8 @@ def check_accuracy(loader, model, device="cuda", use_wb=True ):
     
     print(f"IOU : {iou_torch/n_samples*100:.2f} (Batch = {n_samples})")
     if use_wb:
+        import wandb
+        
         wandb.log({"iou": iou_torch/n_samples})
     model.train()
 
