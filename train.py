@@ -85,7 +85,7 @@ def train():
     elif MODEL == 'AttUnet':
         model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
     elif MODEL == 'Deeplab':
-        model = DeepLabv3(outputchannels=1).to(DEVICE)
+        model = DeepLabv3(output_channels=1).to(DEVICE)
     elif MODEL == 'UnetPlus':
         model = UnetPlus(output_channels=1).to(DEVICE)
     

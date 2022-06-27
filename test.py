@@ -13,7 +13,7 @@ from albumentations.pytorch import ToTensorV2
 from configs.params import *
 from models.unet import UNET
 from models.attention_unet import AttUNET
-from models.smp_models import DeepLabv3, UnetPlus
+from models.smp_models import DeepLabv3, UnetPlus#, DeepLabV3Plus
 from utils import (
     load_checkpoint,
     save_checkpoint,
@@ -44,7 +44,7 @@ def test(filename, outpath):
     elif MODEL == 'AttUnet':
         model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
     elif MODEL == 'Deeplab':
-        model = DeepLabv3(outputchannels=1).to(DEVICE)
+        model = DeepLabv3(output_channels=1).to(DEVICE)
     elif MODEL == 'UnetPlus':
         model = UnetPlus(output_channels=1).to(DEVICE)
 
