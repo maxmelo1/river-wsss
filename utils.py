@@ -58,7 +58,7 @@ def get_loaders(
 
     return train_loader, val_loader
 
-def check_accuracy(loader, model, device="cuda" ):
+def check_accuracy(loader, model, device="cuda", use_wb=True ):
     num_correct = 0
     num_pixels = 0
     n_samples = 0
@@ -91,7 +91,8 @@ def check_accuracy(loader, model, device="cuda" ):
     )
     
     print(f"IOU : {iou_torch/n_samples*100:.2f} (Batch = {n_samples})")
-    wandb.log({"iou": iou_torch/n_samples})
+    if use_wb:
+        wandb.log({"iou": iou_torch/n_samples})
     model.train()
 
 def save_predictions_as_imgs(
