@@ -20,17 +20,24 @@ from utils import (
     get_loaders,
     check_accuracy,
     save_predictions_as_imgs,
+    show_result_images,
 )
 
 import matplotlib.pyplot as plt
 import numpy as np
+from IPython.display import display
+from PIL import Image
 
+from matplotlib.pyplot import imshow
 
+COLORS = {'RIVER': [128, 0, 0], 'BG': [35, 2 ,38]}
 
-#def test_fn(loader, model, optimizer, loss_fn, scaler, epoch, scheduler):
-
-def test(filename):
+def test(filename, outpath):
     assert filename != "", "invalid filename given"
+    assert outpath != "", "invalid output path given"
+
+    if not  os.path.exists(outpath):
+        os.mkdir(outpath)
 
     if MODEL == 'Unet':
         model = UNET(in_channels=3, out_channels=1).to(DEVICE)
@@ -87,6 +94,37 @@ def test(filename):
 
     print('\n\n\n')
 
+    results = show_result_images(val_loader, model, device=DEVICE, use_wb=False)
+
+    print('Saving predictions...')
+    x = []
+    y = []
+    for i, r in enumerate(results):
+        print(f'Sample {i}')
+        im = r[0]
+
+        mask = np.zeros((IMAGE_WIDTH, IMAGE_HEIGHT, 3), dtype='uint8')
+        pred = np.zeros((IMAGE_WIDTH, IMAGE_HEIGHT, 3), dtype='uint8')
+
+        rpred = np.array(r[1])
+        pred[:,:] = COLORS['BG']
+        pred[rpred>0] = COLORS['RIVER']
+
+        rmask = np.array(r[2])
+        mask[:,:] = COLORS['BG']
+        mask[rmask>0] = COLORS['RIVER']
+
+        pred = Image.fromarray(pred)
+        pred.save(outpath+str(i)+"_pred.png")
+
+        mask = Image.fromarray(mask)
+        mask.save(outpath+str(i)+"_mask.png")
+
+        im.save(outpath+str(i)+".png")
+    
+    print('Done saving!')
+        
+        
 
 
 
@@ -115,4 +153,4 @@ if __name__ == '__main__':
     
     print(f'SELECTED MODEL: {MODEL}')
 
-    test("results/"+MODEL+"/last_checkpoint.pth.tar")
+    test("results/"+MODEL+"/last_checkpoint.pth.tar", "results/"+MODEL+"/images/")

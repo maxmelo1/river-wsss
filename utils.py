@@ -1,9 +1,11 @@
 import torch
 import torchvision
-from custom_dataset import CustomDataset
 from torch.utils.data import DataLoader
-
+import torchvision.transforms as T
+from PIL import Image
 from torchmetrics import JaccardIndex
+
+from custom_dataset import CustomDataset
 
 import numpy as np
 
@@ -56,6 +58,26 @@ def get_loaders(
 
     return train_loader, val_loader
 
+def show_result_images(loader, model, device="cuda", use_wb=True ):
+    results = []
+    with torch.no_grad():
+        for x, y in loader:
+            x = x.to(device)
+            y = y.to(device).unsqueeze(1)
+
+            preds = torch.sigmoid(model(x))
+            preds = (preds > 0.5).float()
+
+            transform = T.ToPILImage()
+
+            for im, pred, mask in zip(x, y.squeeze(), preds.squeeze()):
+                results.append([transform(im), transform(pred), transform(mask)])
+
+            #results.append(transform(preds.squeeze()), transform(y.squeeze()))
+
+    return results
+
+
 def check_accuracy(loader, model, device="cuda", use_wb=True ):
     num_correct = 0
     num_pixels = 0
@@ -91,7 +113,7 @@ def check_accuracy(loader, model, device="cuda", use_wb=True ):
     print(f"IOU : {iou_torch/n_samples*100:.2f} (Batch = {n_samples})")
     if use_wb:
         import wandb
-        
+
         wandb.log({"iou": iou_torch/n_samples})
     model.train()
 
