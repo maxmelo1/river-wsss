@@ -1,0 +1,118 @@
+import os
+import sys
+import random
+import csv
+
+
+import argparse
+
+import torch
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
+from configs.params import *
+from models.unet import UNET
+from models.attention_unet import AttUNET
+from models.smp_models import DeepLabv3, UnetPlus
+from utils import (
+    load_checkpoint,
+    save_checkpoint,
+    get_loaders,
+    check_accuracy,
+    save_predictions_as_imgs,
+)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+
+#def test_fn(loader, model, optimizer, loss_fn, scaler, epoch, scheduler):
+
+def test(filename):
+    assert filename != "", "invalid filename given"
+
+    if MODEL == 'Unet':
+        model = UNET(in_channels=3, out_channels=1).to(DEVICE)
+    elif MODEL == 'AttUnet':
+        model = AttUNET(in_channels=3, out_channels=1).to(DEVICE)
+    elif MODEL == 'Deeplab':
+        model = DeepLabv3(outputchannels=1).to(DEVICE)
+    elif MODEL == 'UnetPlus':
+        model = UnetPlus(output_channels=1).to(DEVICE)
+
+
+    load_checkpoint(torch.load(filename), model)
+
+    train_transform = A.Compose(
+        [
+            A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
+            A.Rotate(limit=35, p=1.0),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.1),
+            A.Normalize(
+                mean=[0.0, 0.0, 0.0],
+                std=[1.0, 1.0, 1.0],
+                max_pixel_value=255.0,
+            ),
+            ToTensorV2(),
+        ],
+    )
+
+    val_transforms = A.Compose(
+        [
+            A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
+            A.Normalize(
+                mean=[0.0, 0.0, 0.0],
+                std=[1.0, 1.0, 1.0],
+                max_pixel_value=255.0,
+            ),
+            ToTensorV2(),
+        ],
+    )
+
+    _, val_loader = get_loaders(
+        TRAIN_IMG_DIR,
+        TRAIN_MASK_DIR,
+        VAL_IMG_DIR,
+        VAL_MASK_DIR,
+        BATCH_SIZE,
+        train_transform,
+        val_transforms,
+        NUM_WORKERS,
+        PIN_MEMORY,
+    )
+
+    check_accuracy(val_loader, model, device=DEVICE, use_wb=False)
+
+    print('\n\n\n')
+
+
+
+
+if __name__ == '__main__':
+
+
+
+    parser = argparse.ArgumentParser(description='WSSS Testing Function')
+
+    parser.add_argument('--bs', help='batch size', type=int, required=False)
+    parser.add_argument('--epochs', help='max epochs', type=int, required=False)
+    parser.add_argument('--height', help='input image height', type=int, required=False)
+    parser.add_argument('--width', help='input image width', type=int, required=False)
+    parser.add_argument('--model', help='model name', type=str, required=False)
+    
+    args = parser.parse_args()
+    
+    BATCH_SIZE      = args.bs
+    NUM_EPOCHS      = args.epochs
+    IMAGE_HEIGHT    = args.height
+    IMAGE_WIDTH     = args.width
+
+    #default: Unet
+    if args.model in VALID_MODELS:
+        MODEL           = args.model
+    
+    print(f'SELECTED MODEL: {MODEL}')
+
+    test("results/"+MODEL+"/last_checkpoint.pth.tar")
