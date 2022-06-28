@@ -3,7 +3,7 @@ import torchvision
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from PIL import Image
-from torchmetrics import JaccardIndex
+from torchmetrics import JaccardIndex#, F1Score, Precision, Recall
 
 from custom_dataset import CustomDataset
 
@@ -78,14 +78,18 @@ def show_result_images(loader, model, device="cuda", use_wb=True ):
     return results
 
 
-def check_accuracy(loader, model, device="cuda", use_wb=True ):
+def check_accuracy(loader, model, device="cuda", use_wb=True, eps=1e-7 ):
     num_correct = 0
     num_pixels = 0
     n_samples = 0
     model.eval()
 
     jaccard = JaccardIndex(num_classes=2).to(device)
+
     iou_torch = 0.0
+    f1_torch = 0.0
+    prec_torch = 0.0
+    rec_torch = 0.0
 
     with torch.no_grad():
         for x, y in loader:
@@ -99,18 +103,34 @@ def check_accuracy(loader, model, device="cuda", use_wb=True ):
             preds = (preds > 0.5).float()
             num_correct += (preds == y).sum()
             num_pixels += torch.numel(preds)
+
+            tp = torch.sum(preds * y)  
+            fp = torch.sum(preds * (1 - y))  
+            fn = torch.sum((1 - preds) * y)  
+            tn = torch.sum((1 - preds) * (1 - y)) 
             
             y = y.int()
+
             iou_torch += jaccard(preds, y).to(device)
+            precision = (tp + eps) / (tp + fp + eps)
+            recall = (tp + eps) / (tp + fn + eps)
+            f1 = (2*precision*recall)/(precision+recall).mean()
 
             
+            prec_torch+= precision
+            rec_torch += recall
+            f1_torch  += f1
 
+            
 
     print(
         f"Got {num_correct}/{num_pixels} with acc {num_correct/num_pixels*100:.2f}"
     )
     
     print(f"IOU : {iou_torch/n_samples*100:.2f} (Batch = {n_samples})")
+    print(f"Precision : {prec_torch/n_samples*100:.2f} ")
+    print(f"Recall : {rec_torch/n_samples*100:.2f} ")
+    print(f"F1 : {f1_torch/n_samples*100:.2f} ")
     if use_wb:
         import wandb
 

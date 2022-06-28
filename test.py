@@ -30,7 +30,7 @@ from PIL import Image
 
 from matplotlib.pyplot import imshow
 
-COLORS = {'RIVER': [128, 0, 0], 'BG': [35, 2 ,38]}
+COLORS = {'RIVER': [242, 235, 24], 'BG': [35, 2 ,38]}
 
 def test(filename, outpath):
     assert filename != "", "invalid filename given"
