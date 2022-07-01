@@ -70,7 +70,7 @@ def show_result_images(loader, model, device="cuda", use_wb=True ):
 
             transform = T.ToPILImage()
 
-            for im, pred, mask in zip(x, y.squeeze(), preds.squeeze()):
+            for im, mask, pred in zip(x, y.squeeze(), preds.squeeze()):
                 results.append([transform(im), transform(pred), transform(mask)])
 
             #results.append(transform(preds.squeeze()), transform(y.squeeze()))
