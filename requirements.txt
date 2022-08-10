@@ -1,3 +1,5 @@
-segmentation_models_pytorch
+segmentation-models-pytorch
 torchmetrics
 wandb
+albumentations
+opencv-python-headless<4.3
