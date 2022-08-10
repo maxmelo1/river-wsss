@@ -60,8 +60,7 @@ Deeplab v3+| 99.09 | 91.11 | 70.45 | 78.84 | 91.11|
 Attention U-Net | 98.96 | 97.95 | 52.16| 67.66| 85.19|
 UNet++ | 99.29| 100.0| 79.73| 88.76| 96.86
 
-## Train and test WSSS model
-The PuzzleCAM was trained as explained by the author [PuzzleCAM Github](https://github.com/OFRIN/PuzzleCAM).
+
 
 ## Quantitative results
 
@@ -70,6 +69,3 @@ The PuzzleCAM was trained as explained by the author [PuzzleCAM Github](https://
 PuzzleCAM |52.15|
 
 
-## Colab notebook
-
-Google colab was used to train and test the PuzzleCAM model. The notebook used is available [here](https://colab.research.google.com/drive/146E6TFXqe0W8qMAopBmIQP1pJYQlsmO9?usp=sharing).
