@@ -11,6 +11,8 @@ import xml.etree.ElementTree as ET
 
 from xml.dom import minidom
 
+from voc_utils import *
+
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -217,29 +219,25 @@ def count_river(mask_ids):
     
     return c
 
-def save_dict(train_size, val_size):
+def save_binary_dict(train_size, val_size, cl_names=["background", "river"]):
     print(type(train_size))
+
+    assert len(cl_names) > 1, "at least two class names must be given!"
+
+    cmap = color_map(len(cl_names))
+
     voc_dict = {"train":{
-                        "river": int(train_size)
+                        cl_names[1]: int(train_size)
                     }, 
                 "validation":{
-                        "river": int(val_size)
+                        cl_names[1]: int(val_size)
                     }, 
-                "classes": 1,
-                "class_names":["river"],
-                "class_dic":{"river": 0},
-                "color_dict": {
-                    "background": [
-                        0,
-                        0,
-                        0
-                    ],
-                    "river": [
-                        128,
-                        0,
-                        0
-                    ]}
+                "classes": len(cl_names)-1,
+                "class_names":cl_names[1:],
+                "class_dic":{name: i  for i, name in enumerate(cl_names[1:])},
+                "color_dict": {k: v[::-1] for k, v in zip(cl_names, cmap)}
     }
+
 
     with open('data/VOC_2012.json', 'w') as f:
         json.dump(voc_dict, f)
@@ -286,4 +284,4 @@ ftrain.close()
 ftrain_aug.close()
 
 
-save_dict(count_river(mask_train_ids), count_river(mask_val_ids))
+save_binary_dict(count_river(mask_train_ids), count_river(mask_val_ids))
