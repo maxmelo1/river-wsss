@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 import json
 import cv2
 from pascal_voc_writer import Writer
+import argparse
+import pandas as pd
 
+from xml.etree import ElementTree
 from xml.etree.ElementTree import parse, Element, SubElement, ElementTree
 import xml.etree.ElementTree as ET
 
-from xml.dom import minidom
+
 
 from voc_utils import *
 
@@ -30,6 +33,8 @@ MASK_TRAIN_PATH = "dataset/ann_dir/train"
 IMAGE_VAL_PATH = "dataset/img_dir/val/"
 MASK_VAL_PATH = "dataset/ann_dir/val/"
 
+IMAGE_TEST_PATH = "dataset/img_dir/test/"
+MASK_TEST_PATH = "dataset/ann_dir/test/"
 
 class VocWriter:
     def __init__(self, folder, filename, width, height, segmented) -> None:
@@ -173,10 +178,10 @@ def save_files(img_name, mask_name):
     new_mask = np.array(mask, copy=True)
     new_mask[new_mask>0] = 1
 
-    new_img_name = img_name.split('/')[3].split('.')[0]
+    new_img_name = img_name.split('/')[-1].split('.')[0]
     image.save("dataset2/JPEGImages/"+new_img_name+".jpg")
 
-    new_mask_name = mask_name.split('/')[3].split('.')[0]
+    new_mask_name = mask_name.split('/')[-1].split('.')[0]
     #mask = Image.fromarray(new_mask).convert('RGB')
     #mask = Image.fromarray(new_mask.astype(np.uint8))
 
@@ -211,7 +216,7 @@ def save_files(img_name, mask_name):
 
     
 
-def count_river(mask_ids):
+def count_tp(mask_ids):
     c=0
     for mask_train in mask_ids:
         mask = np.array(Image.open(mask_train).convert("L"), dtype=np.float32)
@@ -235,53 +240,100 @@ def save_binary_dict(train_size, val_size, cl_names=["background", "river"]):
                 "classes": len(cl_names)-1,
                 "class_names":cl_names[1:],
                 "class_dic":{name: i  for i, name in enumerate(cl_names[1:])},
-                "color_dict": {k: v[::-1] for k, v in zip(cl_names, cmap)}
+                "color_dict": {k: v[::-1].tolist() for k, v in zip(cl_names, cmap)}
     }
 
 
     with open('data/VOC_2012.json', 'w') as f:
         json.dump(voc_dict, f)
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    return argparse.ArgumentTypeError('Boolean esperado')
 
 
-mask_train_ids = np.array([os.path.join(MASK_TRAIN_PATH, x) for x in sorted_fns(MASK_TRAIN_PATH)])
-img_train_ids = np.array([os.path.join(IMAGE_TRAIN_PATH, x) for x in sorted_fns(IMAGE_TRAIN_PATH)])
+def main():
+    parser = argparse.ArgumentParser()
 
-mask_val_ids = np.array([os.path.join(MASK_VAL_PATH, x) for x in sorted_fns(MASK_VAL_PATH)])
-img_val_ids = np.array([os.path.join(IMAGE_VAL_PATH, x) for x in sorted_fns(IMAGE_VAL_PATH)])
+    parser.add_argument('--pkl_path', default="", type=str)
+    parser.add_argument('--mode', default="val")#test
 
-size = len(img_train_ids)
-sizev = len(img_val_ids)
-# print(img_train_ids)
-# print(sizev)
+    args = parser.parse_args()
 
-if os.path.exists('data/train.txt'):
-    os.remove('data/train.txt')
-if os.path.exists('data/val.txt'):
-    os.remove('data/val.txt')
-if os.path.exists('data/train_aug.txt'):
-    os.remove('data/train_aug.txt')
+    if not args.pkl_path:
+        mask_train_ids = np.array([os.path.join(MASK_TRAIN_PATH, x) for x in sorted_fns(MASK_TRAIN_PATH)])
+        img_train_ids = np.array([os.path.join(IMAGE_TRAIN_PATH, x) for x in sorted_fns(IMAGE_TRAIN_PATH)])
+
+        mask_val_ids = np.array([os.path.join(MASK_VAL_PATH, x) for x in sorted_fns(MASK_VAL_PATH)])
+        img_val_ids = np.array([os.path.join(IMAGE_VAL_PATH, x) for x in sorted_fns(IMAGE_VAL_PATH)])
+
+        if 'test' in args.mode:
+            mask_test_ids = np.array([os.path.join(MASK_TEST_PATH, x) for x in sorted_fns(MASK_TEST_PATH)])
+            img_test_ids = np.array([os.path.join(IMAGE_TEST_PATH, x) for x in sorted_fns(IMAGE_TEST_PATH)])            
+            sizet = len(img_test_ids)
+    else:
+        train = pd.read_pickle(args.pkl_path+"train.pkl")
+        mask_train_ids = train['mask_path']
+        img_train_ids = train['X']
+        
+        val = pd.read_pickle(args.pkl_path+"val.pkl")
+        mask_val_ids = val['mask_path']
+        img_val_ids =  val['X']
+        
+        if 'test' in args.mode:
+            test = pd.read_pickle(args.pkl_path+"test.pkl")
+            mask_test_ids = test['mask_path']
+            img_test_ids =  test['X']
+            sizet = len(img_test_ids)
+
+    size = len(img_train_ids)
+    sizev = len(img_val_ids)
+    
+
+    if os.path.exists('data/train.txt'):
+        os.remove('data/train.txt')
+    if os.path.exists('data/val.txt'):
+        os.remove('data/val.txt')
+    if os.path.exists('data/train_aug.txt'):
+        os.remove('data/train_aug.txt')
+    if os.path.exists('data/test.txt'):
+        os.remove('data/test.txt')
 
 
-fval = open('data/val.txt', 'a')
-ftrain = open('data/train.txt', 'a')
-ftrain_aug = open('data/train_aug.txt', 'a')
-#TODO implementar o boundaries para train_aug
-
-for img_train, mask_train in zip(img_train_ids, mask_train_ids):
-    ftrain.write(img_train.split('/')[3].split('.')[0]+'\n')
-    ftrain_aug.write(img_train.split('/')[3].split('.')[0]+'\n')
-
-    save_files(img_train, mask_train)
-
-for img_val , mask_val in zip(img_val_ids, mask_val_ids):
-    fval.write(img_val.split('/')[3].split('.')[0]+'\n')
-
-    save_files(img_val, mask_val)
-
-fval.close()
-ftrain.close()
-ftrain_aug.close()
+    fval = open('data/val.txt', 'a')
+    ftrain = open('data/train.txt', 'a')
+    ftrain_aug = open('data/train_aug.txt', 'a')
+    ftest = open('data/test.txt', 'a')
+    #TODO implementar o boundaries para train_aug
 
 
-save_binary_dict(count_river(mask_train_ids), count_river(mask_val_ids))
+    for img_train, mask_train in zip(img_train_ids, mask_train_ids):        
+        ftrain.write(img_train.split('/')[-1].split('.')[0]+'\n')
+        ftrain_aug.write(img_train.split('/')[-1].split('.')[0]+'\n')
+        
+        save_files(img_train, mask_train)
+
+    for img_val , mask_val in zip(img_val_ids, mask_val_ids):
+        fval.write(img_val.split('/')[-1].split('.')[0]+'\n')
+
+        save_files(img_val, mask_val)
+    
+    if 'test' in args.mode:
+        for img_test , mask_test in zip(img_test_ids, mask_test_ids):
+            ftest.write(img_test.split('/')[-1].split('.')[0]+'\n')
+
+            save_files(img_test, mask_test)
+
+    fval.close()
+    ftrain.close()
+    ftrain_aug.close()
+
+    save_binary_dict(count_tp(mask_train_ids), count_tp(mask_val_ids), cl_names=["background", "burning"])
+
+if __name__ == "__main__":
+    main()
